@@ -22,15 +22,35 @@ CREATE OR REPLACE PROCEDURE GET_STAGES()
           EXECUTE IMMEDIATE 'DESC STAGE "' || catalog || '"."' || schema || '"."' || name || '"';
 
           desc_result :=
-          (
-            SELECT OBJECT_AGG(OBJ['KEY']::VARCHAR, OBJECT_CONSTRUCT('TYPE', OBJ['TYPE'], 'VALUE', OBJ['VALUE'], 'IS_DEFAULT', OBJ['IS_DEFAULT'] ))
-            FROM
-            (
-                SELECT OBJECT_CONSTRUCT(*) AS OBJ
+          ( 
+            SELECT
+                OBJECT_AGG(K, V)
+            FROM (
+                SELECT
+                    OBJ['PARENT'] as K,
+                    OBJECT_AGG
+                    (
+                        OBJ['KEY']::VARCHAR, OBJECT_CONSTRUCT
+                        (
+                            'TYPE', OBJ['TYPE'],
+                            'VALUE', OBJ['VALUE'],
+                            'IS_DEFAULT', OBJ['IS_DEFAULT']
+                        )
+                    ) AS V
                 FROM (
-                    SELECT "property" AS KEY, "property_type" AS TYPE, "property_value" AS VALUE, "property_value" = "property_default" AS IS_DEFAULT
-                    FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()))
+                    SELECT
+                        OBJECT_CONSTRUCT(*) AS OBJ
+                    FROM (
+                        SELECT
+                            "parent_property"                     AS PARENT,
+                            "property"                            AS KEY,
+                            "property_type"                       AS TYPE,
+                            "property_value"                      AS VALUE,
+                            "property_value" = "property_default" AS IS_DEFAULT
+                        FROM TABLE (RESULT_SCAN(LAST_QUERY_ID()))
+                    )
                 )
+                GROUP BY 1
             )
           );
 
