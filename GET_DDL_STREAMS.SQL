@@ -84,7 +84,7 @@ BEGIN
                 LET stage_name VARIANT := (SELECT name FROM stagenames);
                 result := result || ' ON STAGE "'|| :stage_name:CATALOG || '"."' || :stage_name:SCHEMA || '"."' || :stage_name:NAME || '"';
             ELSE
-                result := result || ' ON STAGE ' || row1.value:OPTIONS:BASED_ON:NAME || ' /* cant parse full stage name - it is ambigous!!! */';
+                result := result || ' ON STAGE ' || row1.value:OPTIONS:BASED_ON:NAME || ' /* cant parse full stage name - it is ambiguous!!! */';
             END IF;
         ELSE
             result := result || ' ON ' || row1.value:OPTIONS:BASED_ON:TYPE || ' ' || row1.value:OPTIONS:BASED_ON:NAME;
