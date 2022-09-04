@@ -12,8 +12,8 @@ But GET_DDL function has a lot of issues:
   - some objects export without TAG option
 
 We made this repo to fix some of them. Here you can find the following procedures:
-- GET_DDL_STAGES
-- GET_DDL_STREAMS
+- **GET_DDL_STAGES**
+- **GET_DDL_STREAMS**
 - TODO:GET_DDL_TASKS
 
 ## How it works
