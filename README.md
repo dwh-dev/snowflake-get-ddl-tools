@@ -17,8 +17,8 @@ We made this repo to fix some of them. Here you can find the following procedure
 - TODO:GET_DDL_TASKS
 
 ## How it works
-**Step 1:** collect data from SHOW and DESCRIBE commands and return it as a VARIANT object. (CALL GET_<object>S)<br/>
-**Step 2:** render VARIANT object to SQL text. (CALL GET_DDL_<object>S)
+**Step 1:** collect data from SHOW and DESCRIBE commands and return it as a VARIANT object. (```CALL GET_<object>S```)<br/>
+**Step 2:** render VARIANT object to SQL text. (```CALL GET_DDL_<object>S```)
 <br/>
 <br/>
 PS: We hope that one day this repository will become irrelevant :)
@@ -46,6 +46,7 @@ PS: We hope that one day this repository will become irrelevant :)
 - [ ] COPY_OPTIONS
 <br/>
 <br/>
+
 # GET_DDL_STREAMS
 **Problems:** 
   - GET_DDL returns CREATE STREAM statements without noting the database and schema for the object it is based on.
@@ -67,6 +68,7 @@ PS: We hope that one day this repository will become irrelevant :)
 - [ ] AT | BEFORE (NOT SUPPORTED BY SNOWFLAKE)
 <br/>
 <br/>
+
 # TODO:GET_DDL_TASKS
 **Problems:** 
   - CREATE TASK have no TAG option.
