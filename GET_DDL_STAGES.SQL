@@ -95,11 +95,17 @@ CREATE OR REPLACE PROCEDURE GET_DDL_STAGES()
 $$
 DECLARE
     result VARCHAR DEFAULT '';
+    url VARCHAR DEFAULT '';
 BEGIN
     CALL GET_STAGES();
     LET cur1 CURSOR FOR SELECT f.value as value FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) t, LATERAL FLATTEN(input =>t.$1) f;
     FOR row1 IN cur1 DO
         result := result || 'CREATE OR REPLACE STAGE "' || row1.value:NAME:CATALOG || '"."' || row1.value:NAME:SCHEMA || '"."' || row1.value:NAME:NAME || '"';
+
+        IF (row1.value:OPTIONS:STAGE_LOCATION:URL:VALUE != '' ) THEN
+            url = PARSE_JSON(row1.value:OPTIONS:STAGE_LOCATION:URL:VALUE)[0]::TEXT;
+            result := result || ' URL = \'' || url || '\'';
+        END IF;
 
         -- COMMENT
         IF (row1.value:COMMENT != '' ) THEN
