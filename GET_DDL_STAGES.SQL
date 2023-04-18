@@ -8,78 +8,84 @@ CREATE OR REPLACE PROCEDURE GET_STAGES()
         desc_result VARIANT;
         stage_variant VARIANT;
         stage_variant_array VARIANT DEFAULT ARRAY_CONSTRUCT();
-
-        cur1 CURSOR FOR SELECT STAGE_CATALOG, STAGE_SCHEMA, STAGE_NAME FROM INFORMATION_SCHEMA.STAGES ORDER BY 1,2,3;
     BEGIN
-        FOR row_variable IN cur1 DO
-          LET catalog varchar := row_variable.STAGE_CATALOG;
-          LET schema varchar := row_variable.STAGE_SCHEMA;
-          LET name varchar := row_variable.STAGE_NAME;
-          LET comment VARCHAR := NULL;
-          LET tags VARIANT := NULL;
-
-
-          EXECUTE IMMEDIATE 'DESC STAGE "' || catalog || '"."' || schema || '"."' || name || '"';
-
-          desc_result :=
-          ( 
+        LET cur1 CURSOR FOR 
             SELECT
-                OBJECT_AGG(K, V)
-            FROM (
+                STAGE_CATALOG,
+                STAGE_SCHEMA,
+                STAGE_NAME 
+            FROM INFORMATION_SCHEMA.STAGES
+            ORDER BY 1,2,3
+        ;
+        FOR row_variable IN cur1 DO
+            LET catalog varchar := row_variable.STAGE_CATALOG;
+            LET schema varchar := row_variable.STAGE_SCHEMA;
+            LET name varchar := row_variable.STAGE_NAME;
+            LET comment VARCHAR := NULL;
+            LET tags VARIANT := NULL;
+
+
+            EXECUTE IMMEDIATE 'DESC STAGE "' || catalog || '"."' || schema || '"."' || name || '"';
+
+            desc_result :=
+            ( 
                 SELECT
-                    OBJ['PARENT'] as K,
-                    OBJECT_AGG
-                    (
-                        OBJ['KEY']::VARCHAR, OBJECT_CONSTRUCT
-                        (
-                            'TYPE', OBJ['TYPE'],
-                            'VALUE', OBJ['VALUE'],
-                            'IS_DEFAULT', OBJ['IS_DEFAULT']
-                        )
-                    ) AS V
+                    OBJECT_AGG(K, V)
                 FROM (
                     SELECT
-                        OBJECT_CONSTRUCT(*) AS OBJ
+                        OBJ['PARENT'] as K,
+                        OBJECT_AGG
+                        (
+                            OBJ['KEY']::VARCHAR, OBJECT_CONSTRUCT
+                            (
+                                'TYPE', OBJ['TYPE'],
+                                'VALUE', OBJ['VALUE'],
+                                'IS_DEFAULT', OBJ['IS_DEFAULT']
+                            )
+                        ) AS V
                     FROM (
                         SELECT
-                            "parent_property"                     AS PARENT,
-                            "property"                            AS KEY,
-                            "property_type"                       AS TYPE,
-                            "property_value"                      AS VALUE,
-                            "property_value" = "property_default" AS IS_DEFAULT
-                        FROM TABLE (RESULT_SCAN(LAST_QUERY_ID()))
+                            OBJECT_CONSTRUCT(*) AS OBJ
+                        FROM (
+                            SELECT
+                                "parent_property"                     AS PARENT,
+                                "property"                            AS KEY,
+                                "property_type"                       AS TYPE,
+                                "property_value"                      AS VALUE,
+                                "property_value" = "property_default" AS IS_DEFAULT
+                            FROM TABLE (RESULT_SCAN(LAST_QUERY_ID()))
+                        )
                     )
+                    GROUP BY 1
                 )
-                GROUP BY 1
-            )
-          );
+            );
 
-          SHOW STAGES;
-          SELECT "comment" INTO :comment
-              FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) t
-              WHERE
-                    t."database_name" = :catalog
-                    AND t."schema_name" = :schema
-                    AND t."name" = :name
-        ;
-        SELECT ARRAY_AGG(o) INTO tags FROM (
-            SELECT OBJECT_CONSTRUCT(*) o
-            from (
-                SELECT '"'|| TAG_DATABASE || '"."'|| TAG_SCHEMA ||'"."'|| TAG_NAME ||'"' AS name, tag_value AS value
-                FROM TABLE(INFORMATION_SCHEMA.TAG_REFERENCES('"'|| :catalog || '"."'|| :schema ||'"."'|| :name ||'"', 'STAGE'))
-            )
-        );
-        stage_variant := OBJECT_CONSTRUCT(
-            'NAME', OBJECT_CONSTRUCT(
-                'CATALOG', catalog,
-                'SCHEMA', schema,
-                'NAME', name
-            ),
-            'COMMENT', comment,
-            'TAGS', tags,
-            'OPTIONS', desc_result
-          );
-          stage_variant_array := ARRAY_APPEND(stage_variant_array, stage_variant);
+            SHOW STAGES;
+            SELECT "comment" INTO :comment
+                FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) t
+                WHERE
+                        t."database_name" = :catalog
+                        AND t."schema_name" = :schema
+                        AND t."name" = :name
+            ;
+            SELECT ARRAY_AGG(o) INTO tags FROM (
+                SELECT OBJECT_CONSTRUCT(*) o
+                from (
+                    SELECT '"'|| TAG_DATABASE || '"."'|| TAG_SCHEMA ||'"."'|| TAG_NAME ||'"' AS name, tag_value AS value
+                    FROM TABLE(INFORMATION_SCHEMA.TAG_REFERENCES('"'|| :catalog || '"."'|| :schema ||'"."'|| :name ||'"', 'STAGE'))
+                )
+            );
+            stage_variant := OBJECT_CONSTRUCT(
+                'NAME', OBJECT_CONSTRUCT(
+                    'CATALOG', catalog,
+                    'SCHEMA', schema,
+                    'NAME', name
+                ),
+                'COMMENT', comment,
+                'TAGS', tags,
+                'OPTIONS', desc_result
+            );
+            stage_variant_array := ARRAY_APPEND(stage_variant_array, stage_variant);
         END FOR;
         RETURN stage_variant_array;
     END;
@@ -98,12 +104,17 @@ DECLARE
     url VARCHAR DEFAULT '';
 BEGIN
     CALL GET_STAGES();
-    LET cur1 CURSOR FOR SELECT f.value as value FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) t, LATERAL FLATTEN(input =>t.$1) f;
+    LET cur1 CURSOR FOR
+        SELECT f.value as value 
+        FROM
+            TABLE(RESULT_SCAN(LAST_QUERY_ID())) t,
+            LATERAL FLATTEN(input =>t.$1) f
+    ;
     FOR row1 IN cur1 DO
         result := result || 'CREATE OR REPLACE STAGE "' || row1.value:NAME:CATALOG || '"."' || row1.value:NAME:SCHEMA || '"."' || row1.value:NAME:NAME || '"';
 
         IF (row1.value:OPTIONS:STAGE_LOCATION:URL:VALUE != '' ) THEN
-            url = PARSE_JSON(row1.value:OPTIONS:STAGE_LOCATION:URL:VALUE)[0]::TEXT;
+            url := PARSE_JSON(row1.value:OPTIONS:STAGE_LOCATION:URL:VALUE)[0]::TEXT;
             result := result || ' URL = \'' || url || '\'';
         END IF;
 

@@ -7,16 +7,22 @@ CREATE OR REPLACE PROCEDURE GET_STREAMS()
     DECLARE
         stream_variant_array VARIANT DEFAULT ARRAY_CONSTRUCT();
     BEGIN
-          SHOW STREAMS;
+        SHOW STREAMS;
 
-          LET cur1 CURSOR FOR SELECT OBJECT_CONSTRUCT(*) AS OBJ FROM (
-            SELECT
-              "database_name" as CATALOG, "schema_name" AS SCHEMA, "name" AS NAME, "comment" AS COMMENT, "table_name" AS BASE_ON, UPPER("source_type") AS BASE_ON_TYPE,
-              "mode" AS MODE
-            FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()))
-          );
+        LET cur1 CURSOR FOR SELECT OBJECT_CONSTRUCT(*) AS OBJ FROM (
+        SELECT
+            "database_name" as CATALOG,
+            "schema_name" AS SCHEMA,
+            "name" AS NAME,
+            "comment" AS COMMENT,
+            "table_name" AS BASE_ON,
+            UPPER("source_type") AS BASE_ON_TYPE,
+            "mode" AS MODE
+        FROM
+            TABLE(RESULT_SCAN(LAST_QUERY_ID()))
+        );
 
-          FOR row_variable IN cur1 DO
+        FOR row_variable IN cur1 DO
             LET catalog varchar := row_variable.OBJ:CATALOG;
             LET schema varchar :=  row_variable.OBJ:SCHEMA;
             LET name varchar := row_variable.OBJ:NAME;
@@ -64,7 +70,12 @@ DECLARE
     result VARCHAR DEFAULT '';
 BEGIN
     CALL GET_STREAMS();
-    LET cur1 CURSOR FOR SELECT f.value as value FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) t, LATERAL FLATTEN(input =>t.$1) f;
+    LET cur1 CURSOR FOR
+        SELECT f.value as value 
+        FROM
+            TABLE(RESULT_SCAN(LAST_QUERY_ID())) t,
+            LATERAL FLATTEN(input =>t.$1) f
+    ;
     FOR row1 IN cur1 DO
         LET stream_name VARCHAR := '"' || row1.value:NAME:CATALOG || '"."' || row1.value:NAME:SCHEMA || '"."' || row1.value:NAME:NAME || '"';
         LET base_on_type VARCHAR := row1.value:OPTIONS:BASED_ON:TYPE;

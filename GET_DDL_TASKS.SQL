@@ -7,23 +7,27 @@ CREATE OR REPLACE PROCEDURE GET_TASKS()
     DECLARE
         task_variant_array VARIANT DEFAULT ARRAY_CONSTRUCT();
     BEGIN
-          SHOW TASKS;
+        SHOW TASKS;
 
-          LET cur1 CURSOR FOR SELECT OBJECT_CONSTRUCT(*) AS OBJ FROM (
-            SELECT
-              "database_name" as CATALOG, "schema_name" AS SCHEMA, "name" AS NAME, "comment" AS COMMENT, 
-              "warehouse" AS WAREHOUSE, 
-              "schedule" AS SCHEDULE, 
-              "predecessors" AS PREDECESSORS, 
-              "state" AS STATE,
-              "definition" AS DEFINITION, 
-              "condition" AS CONDITION, 
-              "allow_overlapping_execution" AS ALLOW_OVERLAP,
-              "error_integration" AS ERROR_INTEGRATION
-            FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()))
-          );
+        LET cur1 CURSOR FOR SELECT OBJECT_CONSTRUCT(*) AS OBJ FROM (
+        SELECT
+            "database_name" as CATALOG,
+            "schema_name" AS SCHEMA,
+            "name" AS NAME,
+            "comment" AS COMMENT, 
+            "warehouse" AS WAREHOUSE, 
+            "schedule" AS SCHEDULE, 
+            "predecessors" AS PREDECESSORS, 
+            "state" AS STATE,
+            "definition" AS DEFINITION, 
+            "condition" AS CONDITION, 
+            "allow_overlapping_execution" AS ALLOW_OVERLAP,
+            "error_integration" AS ERROR_INTEGRATION
+        FROM
+            TABLE(RESULT_SCAN(LAST_QUERY_ID()))
+        );
 
-          FOR row_variable IN cur1 DO
+        FOR row_variable IN cur1 DO
             LET catalog varchar := row_variable.OBJ:CATALOG;
             LET schema varchar :=  row_variable.OBJ:SCHEMA;
             LET name varchar := row_variable.OBJ:NAME;

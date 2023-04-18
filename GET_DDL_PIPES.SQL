@@ -7,22 +7,34 @@ CREATE OR REPLACE PROCEDURE GET_PIPES()
     DECLARE
         pipe_variant_array VARIANT DEFAULT ARRAY_CONSTRUCT();
     BEGIN
-          SHOW PIPES;
+        SHOW PIPES;
 
-          LET cur1 CURSOR FOR SELECT OBJECT_CONSTRUCT(*) AS OBJ FROM (
-            SELECT
-              "database_name" as CATALOG, "schema_name" AS SCHEMA, "name" AS NAME, "comment" AS COMMENT, "definition" AS DEFINITION, "notification_channel" AS NOTIFICATION_CHANNEL,
-              "integration" AS INTEGRATION, "pattern" AS PATTERN, "error_integration" AS ERROR_INTEGRATION,
-              CASE IS_AUTOINGEST_ENABLED
-                WHEN 'NO' THEN FALSE
-                ELSE TRUE
-              END AS AUTO_INGEST
-            FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) s, INFORMATION_SCHEMA.PIPES p
-            WHERE p.PIPE_CATALOG = s."database_name" AND p.PIPE_SCHEMA = s."schema_name" AND p.PIPE_NAME = s."name"
+        LET cur1 CURSOR FOR SELECT OBJECT_CONSTRUCT(*) AS OBJ FROM (
+        SELECT
+            "database_name" as CATALOG,
+            "schema_name" AS SCHEMA,
+            "name" AS NAME,
+            "comment" AS COMMENT,
+            "definition" AS DEFINITION,
+            "notification_channel" AS NOTIFICATION_CHANNEL,
+            "integration" AS INTEGRATION,
+            "pattern" AS PATTERN,
+            "error_integration" AS ERROR_INTEGRATION,
+            CASE IS_AUTOINGEST_ENABLED
+            WHEN 'NO' THEN FALSE
+            ELSE TRUE
+            END AS AUTO_INGEST
+        FROM
+            TABLE(RESULT_SCAN(LAST_QUERY_ID())) s,
+            INFORMATION_SCHEMA.PIPES p
+        WHERE
+            p.PIPE_CATALOG = s."database_name" 
+            AND p.PIPE_SCHEMA = s."schema_name" 
+            AND p.PIPE_NAME = s."name"
 
-          );
+        );
 
-          FOR row_variable IN cur1 DO
+        FOR row_variable IN cur1 DO
             LET catalog varchar := row_variable.OBJ:CATALOG;
             LET schema varchar :=  row_variable.OBJ:SCHEMA;
             LET name varchar := row_variable.OBJ:NAME;
@@ -53,9 +65,9 @@ CREATE OR REPLACE PROCEDURE GET_PIPES()
                     'ERROR_INTEGRATION', row_variable.OBJ:ERROR_INTEGRATION,
                     'AUTO_INGEST', row_variable.OBJ:AUTO_INGEST
                 )
-              );
-              pipe_variant_array := ARRAY_APPEND(pipe_variant_array, pipe_variant);
-           END FOR;
+                );
+            pipe_variant_array := ARRAY_APPEND(pipe_variant_array, pipe_variant);
+        END FOR;
         RETURN pipe_variant_array;
     END;
 $$;
@@ -72,7 +84,12 @@ DECLARE
     result VARCHAR DEFAULT '';
 BEGIN
     CALL GET_PIPES();
-    LET cur1 CURSOR FOR SELECT f.value as value FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) t, LATERAL FLATTEN(input =>t.$1) f;
+    LET cur1 CURSOR FOR 
+        SELECT f.value as value 
+        FROM 
+            TABLE(RESULT_SCAN(LAST_QUERY_ID())) t,
+            LATERAL FLATTEN(input =>t.$1) f
+    ;
     FOR row1 IN cur1 DO
         LET pipe_name VARCHAR := '"' || row1.value:NAME:CATALOG || '"."' || row1.value:NAME:SCHEMA || '"."' || row1.value:NAME:NAME || '"';
 
