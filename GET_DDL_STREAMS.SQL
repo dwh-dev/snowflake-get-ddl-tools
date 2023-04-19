@@ -83,7 +83,7 @@ BEGIN
 
         result := result || 'CREATE OR REPLACE STREAM ' || stream_name;
 
-        // fix for STAGE
+        -- fix for STAGE
         IF(base_on_type = 'STAGE') THEN
             CREATE OR REPLACE TEMP TABLE stagenames (name VARIANT);
             CALL GET_STAGES();
