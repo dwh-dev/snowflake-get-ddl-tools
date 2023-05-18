@@ -95,6 +95,17 @@ BEGIN
 
         result := result || 'CREATE OR REPLACE PIPE ' || pipe_name;
 
+        -- TAGS
+        LET tags_count INTEGER := ARRAY_SIZE(row1.value:TAGS);
+        IF (tags_count > 0) THEN
+            result := result || ' WITH TAG (';
+            LET tags_array VARIANT := ARRAY_CONSTRUCT();
+            FOR i IN 0 TO tags_count - 1 DO
+                tags_array := ARRAY_APPEND(tags_array, row1.value:TAGS[i]:NAME || ' = \''|| row1.value:TAGS[i]:VALUE || '\'');
+            END FOR;
+            result := result ||  ARRAY_TO_STRING(tags_array, ', ') || ')';
+        END IF;
+
         IF (row1.value:OPTIONS:AUTO_INGEST IS NOT NULL) THEN
             result := result || ' AUTO_INGEST = ' || row1.value:OPTIONS:AUTO_INGEST;
         END IF;
@@ -113,18 +124,6 @@ BEGIN
         END IF;
 
         result := result || ' AS ' || row1.value:OPTIONS:DEFINITION;
-
-
-        -- TAGS
-        LET tags_count INTEGER := ARRAY_SIZE(row1.value:TAGS);
-        IF (tags_count > 0) THEN
-            result := result || '; ALTER PIPE ' || pipe_name || ' SET TAG ';
-            LET tags_array VARIANT := ARRAY_CONSTRUCT();
-            FOR i IN 0 TO tags_count - 1 DO
-                tags_array := ARRAY_APPEND(tags_array, row1.value:TAGS[i]:NAME || ' = \''|| row1.value:TAGS[i]:VALUE || '\'');
-            END FOR;
-            result := result ||  ARRAY_TO_STRING(tags_array, ', ');
-        END IF;
 
         result := result || ';\n';
     END FOR;

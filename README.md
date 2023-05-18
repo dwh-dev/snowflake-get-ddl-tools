@@ -89,7 +89,7 @@ PS: We hope that one day this repository will become irrelevant :)
 **Problems:** 
   - **GET_DDL** returns **CREATE PIPE** only one by one. You should call it for each pipe in your account. The same problem with **GRANT**.
 
-**Returns:** VARCHAR with [CREATE PIPE](https://docs.snowflake.com/en/sql-reference/sql/create-pipe.html) statements and [ALTER PIPE](https://docs.snowflake.com/en/sql-reference/sql/create-pipe.html) statements (for tags).
+**Returns:** VARCHAR with [CREATE PIPE](https://docs.snowflake.com/en/sql-reference/sql/create-pipe.html) (with tags).
 
 **Use:** ```CALL GET_DDL_PIPES();```
 
