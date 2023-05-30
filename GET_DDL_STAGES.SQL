@@ -111,7 +111,9 @@ BEGIN
             LATERAL FLATTEN(input =>t.$1) f
     ;
     FOR row1 IN cur1 DO
-        result := result || 'CREATE OR REPLACE STAGE "' || row1.value:NAME:CATALOG || '"."' || row1.value:NAME:SCHEMA || '"."' || row1.value:NAME:NAME || '"';
+        LET stage_name VARCHAR := '"' || row1.value:NAME:CATALOG || '"."' || row1.value:NAME:SCHEMA || '"."' || row1.value:NAME:NAME || '"';
+
+        result := result || 'CREATE OR REPLACE STAGE ' || stage_name;
 
         IF (row1.value:OPTIONS:STAGE_LOCATION:URL:VALUE != '' ) THEN
             url := PARSE_JSON(row1.value:OPTIONS:STAGE_LOCATION:URL:VALUE)[0]::TEXT;
@@ -126,11 +128,12 @@ BEGIN
         -- TAGS
         LET tags_count INTEGER := ARRAY_SIZE(row1.value:TAGS);
         IF (tags_count > 0) THEN
+            result := result || ' WITH TAG (';
             LET tags_array VARIANT := ARRAY_CONSTRUCT();
             FOR i IN 0 TO tags_count - 1 DO
                 tags_array := ARRAY_APPEND(tags_array, row1.value:TAGS[i]:NAME || ' = \''|| row1.value:TAGS[i]:VALUE || '\'');
             END FOR;
-            result := result || ' WITH TAG (' || ARRAY_TO_STRING(tags_array, ', ') || ')';
+            result := result ||  ARRAY_TO_STRING(tags_array, ', ') || ')';
         END IF;
 
         result := result || ';\n';
