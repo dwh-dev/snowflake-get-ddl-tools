@@ -16,6 +16,7 @@ We made this repo to fix some of them. Here you can find the following procedure
 - **GET_DDL_STREAMS**
 - **GET_DDL_TASKS**
 - **GET_DDL_PIPES**
+- **GET_DDL_TAGS**
 - **GET_DDL_POLICIES**
 - **GET_DDL_PROCEDURES**
 
@@ -103,6 +104,17 @@ PS: We hope that one day this repository will become irrelevant :)
 - [x] INTEGRATION
 - [x] ERROR_INTEGRATION
 - [ ] AWS_SNS_TOPIC (NOT SUPPORTED BY SNOWFLAKE)
+
+
+# **GET_DDL_TAGS**
+**Problems:** 
+  - **CREATE TAG** have no MASKING POLICY option.
+
+**Returns:** VARCHAR with [ALTER TAG](https://docs.snowflake.com/en/sql-reference/sql/alter-tag) statements.
+
+**Use:** ```CALL GET_DDL_TAGS()```;
+
+
 
 # TODO: **GET_DDL_POLICIES**
 **Problems:** 
