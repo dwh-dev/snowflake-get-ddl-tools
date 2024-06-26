@@ -15,6 +15,7 @@ CREATE OR REPLACE PROCEDURE GET_STAGES()
                 STAGE_SCHEMA,
                 STAGE_NAME 
             FROM INFORMATION_SCHEMA.STAGES
+            WHERE STAGE_TYPE IS NOT NULL
             ORDER BY 1,2,3
         ;
         FOR row_variable IN cur1 DO
