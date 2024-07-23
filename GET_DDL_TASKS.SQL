@@ -1,5 +1,5 @@
 -- Returns ARRAY of TASK props objects
-CREATE OR REPLACE PROCEDURE GET_TASKS()
+CREATE OR REPLACE PROCEDURE GET_TASKS(DBNAME STRING DEFAULT NULL)
   RETURNS VARIANT
   LANGUAGE SQL
   EXECUTE AS CALLER
@@ -7,7 +7,11 @@ CREATE OR REPLACE PROCEDURE GET_TASKS()
     DECLARE
         task_variant_array VARIANT DEFAULT ARRAY_CONSTRUCT();
     BEGIN
-        SHOW TASKS;
+         IF (DBNAME IS NULL) THEN
+            SHOW TASKS;
+        ELSE
+            EXECUTE IMMEDIATE 'SHOW TASKS IN DATABASE '||:DBNAME;
+        END IF;
 
         LET cur1 CURSOR FOR SELECT OBJECT_CONSTRUCT(*) AS OBJ FROM (
         SELECT
@@ -69,7 +73,7 @@ $$;
 
 
 -- Returns VARCHAR with CREATE TASK (https://docs.snowflake.com/en/sql-reference/sql/create-task.html) and ALTER TASK (https://docs.snowflake.com/en/sql-reference/sql/alter-task.html) statements.
-CREATE OR REPLACE PROCEDURE GET_DDL_TASKS()
+CREATE OR REPLACE PROCEDURE GET_DDL_TASKS(DBNAME STRING DEFAULT NULL)
   RETURNS VARCHAR
   LANGUAGE SQL
   EXECUTE AS CALLER
@@ -78,7 +82,7 @@ $$
 DECLARE
     result VARCHAR DEFAULT '';
 BEGIN
-    CALL GET_TASKS();
+    CALL GET_TASKS(:DBNAME);
     LET cur1 CURSOR FOR SELECT f.value as value FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) t, LATERAL FLATTEN(input =>t.$1) f;
     FOR row1 IN cur1 DO
         LET task_name VARCHAR := '"' || row1.value:NAME:CATALOG || '"."' || row1.value:NAME:SCHEMA || '"."' || row1.value:NAME:NAME || '"';

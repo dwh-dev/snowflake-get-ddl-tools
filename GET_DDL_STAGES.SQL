@@ -1,5 +1,5 @@
 -- Returns ARRAY of STAGE props objects
-CREATE OR REPLACE PROCEDURE GET_STAGES()
+CREATE OR REPLACE PROCEDURE GET_STAGES(DBNAME STRING DEFAULT NULL)
   RETURNS VARIANT
   LANGUAGE SQL
   EXECUTE AS CALLER
@@ -9,15 +9,20 @@ CREATE OR REPLACE PROCEDURE GET_STAGES()
         stage_variant VARIANT;
         stage_variant_array VARIANT DEFAULT ARRAY_CONSTRUCT();
     BEGIN
-        LET cur1 CURSOR FOR 
-            SELECT
+        LET DBFILTER STRING := '';
+        IF (DBNAME IS NOT NULL) THEN
+            DBFILTER := ' AND STAGE_CATALOG = ''' || :DBNAME || '''';
+        END IF;
+
+        EXECUTE IMMEDIATE 'SELECT
                 STAGE_CATALOG,
                 STAGE_SCHEMA,
                 STAGE_NAME 
             FROM INFORMATION_SCHEMA.STAGES
-            WHERE STAGE_TYPE IS NOT NULL
-            ORDER BY 1,2,3
+            WHERE STAGE_TYPE IS NOT NULL ' || DBFILTER || ' ORDER BY 1,2,3'
         ;
+        
+        LET cur1 CURSOR FOR SELECT * FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
         FOR row_variable IN cur1 DO
             LET catalog varchar := row_variable.STAGE_CATALOG;
             LET schema varchar := row_variable.STAGE_SCHEMA;
@@ -94,7 +99,7 @@ $$;
 
 -- Returns VARCHAR with CREATE STAGE (https://docs.snowflake.com/en/sql-reference/sql/create-stage.html) statements.
 -- TODO: respect all props
-CREATE OR REPLACE PROCEDURE GET_DDL_STAGES()
+CREATE OR REPLACE PROCEDURE GET_DDL_STAGES(DBNAME STRING DEFAULT NULL)
   RETURNS VARCHAR
   LANGUAGE SQL
   EXECUTE AS CALLER
@@ -104,7 +109,7 @@ DECLARE
     result VARCHAR DEFAULT '';
     url VARCHAR DEFAULT '';
 BEGIN
-    CALL GET_STAGES();
+    CALL GET_STAGES(:DBNAME);
     LET cur1 CURSOR FOR
         SELECT f.value as value 
         FROM

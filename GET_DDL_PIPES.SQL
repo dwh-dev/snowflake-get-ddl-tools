@@ -1,5 +1,5 @@
 -- Returns ARRAY of PIPE props objects
-CREATE OR REPLACE PROCEDURE GET_PIPES()
+CREATE OR REPLACE PROCEDURE GET_PIPES(DBNAME STRING DEFAULT NULL)
   RETURNS VARIANT
   LANGUAGE SQL
   EXECUTE AS CALLER
@@ -7,7 +7,11 @@ CREATE OR REPLACE PROCEDURE GET_PIPES()
     DECLARE
         pipe_variant_array VARIANT DEFAULT ARRAY_CONSTRUCT();
     BEGIN
-        SHOW PIPES;
+        IF (DBNAME IS NULL) THEN
+            SHOW PIPES;
+        ELSE
+            EXECUTE IMMEDIATE 'SHOW PIPES IN DATABASE '||:DBNAME;
+        END IF;
 
         LET cur1 CURSOR FOR SELECT OBJECT_CONSTRUCT(*) AS OBJ FROM (
         SELECT
@@ -74,7 +78,7 @@ $$;
 
 
 -- Returns VARCHAR with CREATE PIPE (https://docs.snowflake.com/en/sql-reference/sql/create-pipe.html) and ALTER PIPE (https://docs.snowflake.com/en/sql-reference/sql/alter-pipe.html) statements.
-CREATE OR REPLACE PROCEDURE GET_DDL_PIPES()
+CREATE OR REPLACE PROCEDURE GET_DDL_PIPES(DBNAME STRING DEFAULT NULL)
   RETURNS VARCHAR
   LANGUAGE SQL
   EXECUTE AS CALLER
@@ -83,7 +87,7 @@ $$
 DECLARE
     result VARCHAR DEFAULT '';
 BEGIN
-    CALL GET_PIPES();
+    CALL GET_PIPES(:DBNAME);
     LET cur1 CURSOR FOR 
         SELECT f.value as value 
         FROM 

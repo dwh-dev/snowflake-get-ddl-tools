@@ -4,7 +4,7 @@
 ## Motivation
 In [dwh.dev](https://dwh.dev) we build data lineage based on raw SQL queries. And the main source of truth for us is the result of GET_DDL function.
 But GET_DDL function has a lot of issues:
-  - alphabetical order instead of topological order of objects in schemas (we are fixed it in https://parsers.dev/tools/ddl/reordering)
+  - alphabetical order instead of topological order of objects in schemas
   - you will never know about CTAS and CLONE
   - <del>commented semicolons between statements when the statement is finished with a comment</del> **fixed by Snowflake!**
   - some objects don't export (i.e. STAGEs, INTEGRATIONs, etc)
